@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="addition-using-javascript-transformerFlow" doc:id="8bdd7a2d-a865-46f1-959a-773b20f2c02a" >
+		<http:listener doc:name="Listener" doc:id="0a734668-5ce0-4769-a1f1-c2bd7455964c" config-ref="HTTP_Listener_config" path="/javascript">
+		</http:listener>
+		<ee:transform doc:name="Convert input to Java Object" doc:id="4c6f16da-5b64-4bb7-9bf4-d9d46c5466e2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<scripting:execute doc:name="Perform calculation" doc:id="083b3f18-50e1-40c5-9834-29537742eaef" engine="nashorn">
+			<scripting:code >var list = eval(payload);
+var sum = 0;
+for (var i in list)
+sum += list[i];
+payload = sum;</scripting:code>
+		</scripting:execute>
+		<logger level="INFO" doc:name="Log the outcome" doc:id="f1f73d4c-9a72-4ea3-95eb-8bad9aa78f7f" message="Sum is: #[payload]"/>
+		<set-payload value='#["Sum is: " ++ payload]' doc:name="Set payload to the calculation outcome" doc:id="700eee31-6c73-4cea-826b-0242f56a35e6" />
+	</flow>	
+</mule>
