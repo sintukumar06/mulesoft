@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6a037efc-3ac9-42ae-b108-1dad24ca3bb2" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="content-based-routingFlow" doc:id="7cb1512d-7ca0-4db6-87d8-9080bbaf0e71" >
+		<http:listener config-ref="HTTP_Listener_config" path="/" doc:name="Listener" doc:id="175bd54e-3d54-408f-861c-abc042292dda" />
+		<set-variable variableName="language" value="#[attributes.queryParams.language]" doc:name="Set Variable" doc:id="cee7c70c-a891-439d-be70-8c826f12cc15" />
+		<choice doc:name="Choice" doc:id="93d36998-8bed-46a4-bb37-9ef9721ccfb6" >
+			<when expression="#[vars.language == 'Spanish']" >
+				<set-payload value="Hola!" doc:name="Reply in Spanish" doc:id="b8efcf36-b75a-4a65-9ae4-9d111b4efeec" />
+			</when>
+			<when expression="#[vars.language == 'French']" >
+				<set-payload value="Bonjour!" doc:name="Reply in French" doc:id="3e0cfa9c-a5a8-44dd-85de-2d441053ef28" />
+			</when>
+			<otherwise>
+				<flow-ref name="reply-in-default-languageSub_Flow" doc:name="reply-in-default-languageSub_Flow" doc:id="c31c3bd0-c804-4a79-9c4e-8a7a88cdacc2" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Log the reply" doc:id="a7da53e8-77b5-4bea-8213-fd7f2f644092" message='#["The reply $(payload) means hello in $(vars.language)" ]'/>
+	</flow>
+	<sub-flow name="reply-in-default-languageSub_Flow" doc:id="d62dadf9-b426-4ae9-8fc1-27ace1cafe5b" >
+		<logger level="INFO" doc:name="Logger" doc:id="e99ff396-7918-45d4-831e-49415f9e06da" message="No language specified. Using English as a default. "/>
+		<set-variable variableName="language" value="English" doc:name="Set Language to English" doc:id="8eec18bc-05e3-4f89-9565-186cf93a0553" />
+		<set-payload value="Hello!" doc:name="Reply in English" doc:id="2272b45c-ccf7-4d21-bcd4-89f18f6f0170" />
+	</sub-flow>
+</mule>

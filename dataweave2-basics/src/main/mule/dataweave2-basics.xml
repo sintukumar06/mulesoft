@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="1b094955-fec0-4803-8c97-e244e2c11421" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<configuration-properties file="mule-artifact.properties" doc:name="Configuration properties" doc:id="ca77e29b-a70d-4866-b5b2-0d9d0c9fd705" />
+	<file:config name="File_Config" doc:name="File Config" doc:id="65b6bfc9-6044-4139-862d-b0eb48fce01f" >
+		<file:connection workingDir="${file.working.dir}" />
+	</file:config>
+	<flow name="dataweave2-basicsFlow" doc:id="b490bf6c-61b4-4f12-a366-4e74bce30bae" >
+		<http:listener config-ref="HTTP_Listener_config" path="/greet1" doc:name="/greet1" doc:id="ac698fd2-63ce-4063-af3a-0eb9f877eff8" />
+		<set-payload value='#["Hello " ++ attributes.queryParams.username]' doc:name="Prepare greeting" doc:id="3fe3c3ff-7330-4508-8321-308bdf24b078" mimeType="text/plain"/>
+	</flow>
+	<flow name="dataweave2-basicsFlow1" doc:id="af8643b2-ff90-4d76-a496-3d99b578317a" >
+		<http:listener config-ref="HTTP_Listener_config" path="/greet2" doc:name="/greet2" doc:id="7cc0da06-f46d-4c19-a696-4a597d4bf7b2" />
+		<choice doc:name="Is username in query parameters?" doc:id="28406697-bf5a-4369-b9e8-847c1c834628" >
+			<when expression="#[attributes.queryParams.username == null]" >
+				<set-payload value="No username provided!" doc:name="Prepare response for invalid username" doc:id="05923901-05c4-404b-95e5-3b01588172cb" mimeType="text/plain"/>
+			</when>
+			<otherwise >
+				<set-payload value='#["Hello " ++ attributes.queryParams.username]' doc:name="Prepare greeting" doc:id="3fe3c3ff-7330-4508-8321-308bdf24b078" mimeType="text/plain"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="dataweave2-basicsFlow2" doc:id="309bb0c5-b16e-453a-b51c-bdfdec83fd2b" >
+		<http:listener config-ref="HTTP_Listener_config" path="/greet3" doc:name="/greet3" doc:id="1e70ed96-b8e3-4303-9eaa-2fcef91ed1d3" />
+		<set-variable variableName="username" value="#[attributes.queryParams.username]" doc:name="Set username variable" doc:id="650d8671-1dfd-4251-88dc-1a6b64724fa2" />
+		<file:write config-ref="File_Config" path="${file.txt.name}" doc:name="Write to file" doc:id="b7a66af9-1d08-4290-bb17-4df49b279b7b" >
+			<file:content ><![CDATA[#["Username: " ++ vars.username ++ " Age: " ++ attributes.queryParams.age]]]></file:content>
+		</file:write>
+		<set-payload value='#["Hello " ++ attributes.queryParams.username]' doc:name="Prepare greeting" doc:id="bd0135c4-02ce-4075-a169-83a728af3dcb" mimeType="text/plain"/>
+	</flow>
+	<flow name="dataweave2-basicsFlow3" doc:id="f8f285c1-0335-40f4-8e2a-89e0d912a957" >
+		<http:listener config-ref="HTTP_Listener_config" path="/greet4" doc:name="/greet4" doc:id="6821d3ce-30f4-44c8-b069-b927a02938c4" />
+		<set-variable variableName="username" value="#[attributes.queryParams.username]" doc:name="Set username variable" doc:id="650d8671-1dfd-4251-88dc-1a6b64724fa2" />
+		<ee:transform doc:name="Prepare csv content" doc:id="fa18fb6b-db88-42e2-b42f-c6f79e49b0a4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=false
+---
+[
+	{
+		username: vars.username,
+		age: attributes.queryParams.age
+	}
+]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write config-ref="File_Config" path="${file.csv.name}" doc:name="Write to file" doc:id="b7a66af9-1d08-4290-bb17-4df49b279b7b" >
+		</file:write>
+		<set-payload value='#["Hello " ++ attributes.queryParams.username]' doc:name="Prepare greeting" doc:id="bd0135c4-02ce-4075-a169-83a728af3dcb" mimeType="text/plain"/>
+	</flow>
+	<flow name="dataweave2-basicsFlow4" doc:id="887625f1-3f6b-4ef1-a57e-c41bc91ca933" >
+		<http:listener config-ref="HTTP_Listener_config" path="/greet5" doc:name="/greet5" doc:id="54fbf263-ce30-413f-873b-7caef7ee0027" allowedMethods="POST" outputMimeType="application/xml"/>
+		<set-variable variableName="username" value="#[output application/json --- payload.user.username]" doc:name="Set username variable" doc:id="650d8671-1dfd-4251-88dc-1a6b64724fa2" />
+		<file:write config-ref="File_Config" path="${file.txt.name}" doc:name="Write to file" doc:id="b7a66af9-1d08-4290-bb17-4df49b279b7b">
+			<file:content><![CDATA[#[output text/plain --- "Username: " ++ vars.username ++ " Age: " ++ payload.user.age]]]></file:content>
+		</file:write>
+		<set-payload value="#[output text/plain --- 'Hello ' ++ vars.username]" doc:name="Prepare greeting" doc:id="bd0135c4-02ce-4075-a169-83a728af3dcb" mimeType="text/plain"/>
+	</flow>
+	<flow name="dataweave2-basicsFlow5" doc:id="151eaa3e-c64c-49d0-bd32-f7f5057f6a9f" >
+		<http:listener config-ref="HTTP_Listener_config" path="/greet6" doc:name="/greet6" doc:id="660fa715-90f7-40f5-bc61-757856ab3249" />
+		<set-variable variableName="username" value="#[output application/json --- payload.username]" doc:name="Set username variable" doc:id="650d8671-1dfd-4251-88dc-1a6b64724fa2" mimeType="application/json"/>
+		<file:write config-ref="File_Config" path="${file.txt.name}" doc:name="Write to file" doc:id="b7a66af9-1d08-4290-bb17-4df49b279b7b" >
+			<file:content ><![CDATA[#[output text/plain --- "Username: " ++ vars.username ++ " Age: " ++ payload.age]]]></file:content>
+		</file:write>
+		<set-payload value='#[output text/plain --- "Hello " ++ vars.username]' doc:name="Prepare greeting" doc:id="bd0135c4-02ce-4075-a169-83a728af3dcb" mimeType="text/plain"/>
+	</flow>
+</mule>
