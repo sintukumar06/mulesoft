@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="6d091270-8003-4abb-9c9f-3e1a4eb946b2" >
+		<file:connection workingDir="${file.working.dir}" />
+	</file:config>
+	<salesforce:sfdc-config name="Salesforce_Sfdc_config" doc:name="Salesforce Sfdc config" doc:id="17bb096c-aab5-4464-821a-126b6ea8d7de" >
+		<salesforce:basic-connection username="${sfdc.user}" password="${sfdc.password}" securityToken="${sfdc.securityToken}" />
+	</salesforce:sfdc-config>
+	<configuration-properties file="mule-artifact.properties" doc:name="Configuration properties" doc:id="ed23f760-3b86-4104-84a9-1d02c6f1a12c" />
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8c9d5b28-7e48-4fd0-93cc-3b7cf95e8496" basePath="/dwl" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="CreateNewSalesforceAccountFlow" doc:description="From the content of a CSV file, creates new accounts in Salesforce." doc:id="b0dbbd6e-2ccf-494d-ac45-8977aad2906c" >
+		<http:listener doc:name="Listener" doc:id="a3c402f5-fe86-45ce-8edd-d15b630cf2db" config-ref="HTTP_Listener_config" path="/callSubFlow"/>
+		<file:read config-ref="File_Config" path="companies.csv" doc:name="Read CSV file" doc:id="fb080956-5259-4622-b2d0-eec523e645a1" outputMimeType="application/csv" />
+		<ee:transform doc:name="Map to SFDC structure" doc:id="85ef3c47-d236-406b-9ff4-e8d65fa24af4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map
+{
+	Name: $.company_name,
+	BillingStreet: $.company_address,
+	BillingCity: $.company_city,
+	BillingState: upper($.company_state),
+	BillingPostalCode: $.company_zip,
+	Region__c: lookup("LookUpSalesRegionFlow", $.company_state).region
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="1e7d6504-0346-42cd-885b-0e14807a6b09" message='#["Payload -------&gt; " ++ (payload as String)]'/>
+<!--  		<salesforce:create config-ref="Salesforce_Sfdc_config" doc:name="Create Account" doc:id="04546b77-4625-45cc-955b-df5740ff331d" type="Account"/>
+	 -->
+</flow>
+	<flow name="LookUpSalesRegionFlow" doc:description="The script uses data in the state field to add a region to the payload according to location." doc:id="8f69c476-d8a0-4169-82cc-83000b7c442f" >
+		<scripting:execute engine="groovy" doc:name="Get Region by State" doc:id="6eea6fc0-65a3-45ed-835c-f66f626a9258" >
+			<scripting:code >def region = &quot;UNKNOWN&quot;
+if (payload != null) {
+	payload = payload.toUpperCase()
+}
+println &quot;State to lookup is: &quot; + payload
+switch (payload) {
+	case [&quot;CT&quot;,&quot;ME&quot;,&quot;MA&quot;,&quot;NH&quot;,&quot;VT&quot;,&quot;RI&quot;,&quot;NY&quot;,&quot;NJ&quot;,&quot;DE&quot;,&quot;DC&quot;,&quot;MD&quot;,&quot;NH&quot;]:
+      region = &quot;North East&quot;
+      break
+      case [&quot;AL&quot;,&quot;AR&quot;,&quot;FL&quot;, &quot;GA&quot;,&quot;LA&quot; ,&quot;SC&quot;,&quot;NC&quot;,&quot;TN&quot;,&quot;TX&quot;]:
+      region = &quot;South East&quot;
+      break
+      case [&quot;ID&quot;,&quot;IL&quot;, &quot;IA&quot;,&quot;KS&quot;,&quot;MT&quot;, &quot;WY&quot;,&quot;ND&quot;,&quot;SD&quot;,&quot;OH&quot; ]:
+      region = &quot;Mid West&quot;
+      break
+      case [&quot;AZ&quot;,&quot;CO&quot;,&quot;OK&quot;,&quot;NM&quot;, &quot;NV&quot;]:
+      region = &quot;South West&quot;
+      break
+      case [&quot;CA&quot;,&quot;HI&quot;,&quot;WA&quot;,&quot;OR&quot;, &quot;AK&quot;]:
+      region = &quot;West Coast&quot;
+      break
+}
+return [&quot;region&quot;:region]</scripting:code>
+		</scripting:execute>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="40eeacbb-bef1-4974-8558-ac6f71070be4" mimeType="application/java"/>
+		<logger level="INFO" doc:name="Log the region" doc:id="9adc87d0-0f62-46c8-8a2b-1f83a178cecd" message="#['Region is: ' ++ payload.region]" />
+	</flow>
+</mule>
