@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="dwl-plusplus-exampleFlow" doc:id="b869ef5d-0c93-47a4-b387-534e0d097469" >
+		<http:listener doc:name="Listener" doc:id="bbd4f4f6-9bf5-4d8e-9f99-5c2925ff5fb5" config-ref="HTTP_Listener_config" path="/plusplus"/>
+		<choice doc:name="Choice" doc:id="8e5023ff-7cfd-4431-bcee-c83750fcf4d3" >
+			<when expression="#[attributes.headers.Accept == 'application/xml']">
+				<ee:transform doc:name="Transform Message_XML" doc:id="144ae52d-7dc6-4567-9f39-267411de3200" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+  "concatObject" : {aa: "a", bb: "b"} ++ {cc: "c"}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="9143c01b-67b2-497a-a227-719a5676dc6a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "concatArray" : [0, 1, 2] ++ ["a", "b", "c"],
+  "concatArray2" : [0, 1, true, "my string"] ++ [2, [3,4,5], {"a": 6}],
+  "concatString" : "Mule" ++ "Soft",
+  "concatObject" : {aa: "a", bb: "b"} ++ {cc: "c"},
+  "LocalDateTime" : (|2017-10-01| ++ |23:57:59|),
+  "LocalTimeDate" : (|23:57:59| ++ |2003-10-01|),
+  "DateTime" : |2017-10-01| ++ |23:57:59-03:00|,
+  "DateTime2" : |2017-10-01| ++ |23:57:59Z|,
+  "TimeDate1" : (|23:57:59| as Time) ++ |2017-10-01|,
+  "TimeDate2" : |23:57:59Z| ++ |2017-10-01|,
+  "TimeDate3" : |23:57:59+02:00| ++ |2017-10-01|,
+  "DateTimeZone" : (|2017-10-01| ++ |-03:00|),
+  "TimeDateZone" : |-03:00| ++ |2017-10-01|,
+  "LocalTimeDateTimeZone" : (|2003-10-01T23:57:59| ++ |-03:00|),
+  "TimeZoneLocalTimeDate" : (|-03:00| ++ |2003-10-01T23:57:59|),
+  "LocalTimeTimeZone" : (|23:57| ++ |-03:00|),
+  "TimeZoneLocalTime" : (|-03:00| ++ |23:57|)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="dwl-minusminus-exampleFlow" doc:id="c7a5d9b3-6c02-4c1c-8044-b0e1584953fa" >
+		<http:listener doc:name="Listener" doc:id="fa12873d-b42e-44d8-a78c-9fea0e532727" config-ref="HTTP_Listener_config" path="/minusminus"/>
+		<ee:transform doc:name="Transform Message" doc:id="5241c1c9-6412-4e23-9749-2ed956135ae5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"array" : [0, 1, 1, 2] -- [1,2],
+	"map-key" : {
+		"hello" : "world",
+		"name" : "DW"
+	} -- {
+		"hello" : "world"
+	},
+	"object-arrayString" : {
+		"yes" : "no",
+		"good" : "bad",
+		"old" : "new"
+	} -- ["yes", "old"],
+	"object-ArrayKey" : {
+		"hello" : "world",
+		"name" : "DW"
+	} -- ["hello" as Key]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>	
+	<flow name="dwl-maths-exampleFlow" doc:id="5d32f86b-dfbd-4114-93b0-0d9e902e0146" >
+		<http:listener doc:name="Listener" doc:id="b3d33093-dbd5-409c-9040-1ceabe02c0ad" config-ref="HTTP_Listener_config" path="/maths"/>
+		<ee:transform doc:name="Transform Message" doc:id="630c2ee5-d9b9-4b62-9111-690c9816c4f9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	a: abs(-2),
+	b: abs(2.5),
+	c: abs(-3.4),
+	d: abs(3),
+	avg1: avg([1, 1000]),
+	avg2: avg([1, 2, 3]),
+	ceil1: ceil(1.5),
+	ceil2: ceil(2.1),
+	ceil3: ceil(3)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>	
+	<flow name="dwl-contains-exampleFlow" doc:id="370324d4-c9a7-48bb-ab5e-cdd48bfb4b1f" >
+		<http:listener doc:name="Listener" doc:id="edb36685-6868-4e3c-8ed8-4a64e78be653" config-ref="HTTP_Listener_config" path="/distinctBy"/>
+		<ee:transform doc:name="Transform Message" doc:id="dd6a8520-af9d-4703-a0eb-6ac49168cf79">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var record =  {
+  "title": "XQuery Kick Start",
+  "author": [
+    "James McGovern",
+    "Per Bothner",
+    "Kurt Cagle",
+    "James Linn",
+    "Kurt Cagle",
+    "Kurt Cagle",
+    "Kurt Cagle",
+    "Vaidyanathan Nagarajan"
+  ],
+  "year":"2000"
+}
+---
+{
+    "book" : {
+      "title" : record.title,
+      "year" : record.year,
+      "authors" : record.author distinctBy $
+    }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="430c9777-e14f-48a7-8c47-02ba9a94b671" />
+	</flow>		
+	<flow name="dwl-distinctBy-exampleFlow" doc:id="d79ede2e-9051-4624-9dfc-2f116a18e2a6" >
+		<http:listener doc:name="Listener" doc:id="769182d6-dde2-4939-a401-f1039770f512" config-ref="HTTP_Listener_config" path="/contains"/>
+		<set-payload value='&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;root&gt;
+    &lt;order&gt;
+      &lt;items&gt;155&lt;/items&gt;
+    &lt;/order&gt;
+    &lt;order&gt;
+      &lt;items&gt;30&lt;/items&gt;
+    &lt;/order&gt;
+    &lt;order&gt;
+      &lt;items&gt;15&lt;/items&gt;
+    &lt;/order&gt;
+    &lt;order&gt;
+      &lt;items&gt;5&lt;/items&gt;
+    &lt;/order&gt;
+    &lt;order&gt;
+      &lt;items&gt;4&lt;/items&gt;
+      &lt;items&gt;7&lt;/items&gt;
+    &lt;/order&gt;
+    &lt;order&gt;
+      &lt;items&gt;1&lt;/items&gt;
+      &lt;items&gt;3&lt;/items&gt;
+    &lt;/order&gt;
+    &lt;order&gt;
+        null
+    &lt;/order&gt;
+&lt;/root&gt;' doc:name="Set Payload" doc:id="deef7e60-adb4-4726-96ed-c5b5adb6c5fd" mimeType="application/xml" />
+		<ee:transform doc:name="Transform Message" doc:id="655b86c8-5fbb-4873-93fe-580afe7312a1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+ContainsRequestedItem: payload.root.*order.*items contains "3"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="039520ee-48c4-4a15-ba37-2b2e3c3e4cd5" />
+	</flow>		
+</mule>
