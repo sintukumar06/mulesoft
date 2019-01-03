@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow name="dwl-diff-exampleFlow" doc:id="18993f32-ebf5-484c-883b-2ab22b5db98e" >
+		<http:listener doc:name="Listener" doc:id="adf4f1a1-3bee-4da8-8532-cf9c66da6f34" config-ref="HTTP_Listener_config" path="/diff"/>
+		<ee:transform doc:name="Transform Message" doc:id="7a79c65e-c35d-4c39-9605-f8ff9b2a4275">
+			<ee:message>
+				<ee:set-payload><![CDATA[import diff from dw::util::Diff
+ns ns0 http://locahost.com
+ns ns1 http://acme.com
+output application/dw
+---
+{
+  "a": diff({a: 1}, {b:1}),
+  "b": diff({ns0#a: 1}, {ns1#a:1}),
+  "c": diff([1,2,3], []),
+  "d": diff([], [1,2,3]),
+  "e": diff([1,2,3], [1,2,3, 4]),
+  "f": diff([{a: 1}], [{a: 2}]),
+  "g": diff({a @(c: 2): 1}, {a @(c: 3): 1}),
+  "h": diff(true, false),
+  "i": diff(1, 2),
+  "j": diff("test", "other test"),
+  "k": diff({a: 1}, {a:1}),
+  "l": diff({ns0#a: 1}, {ns0#a:1}),
+  "m": diff([1,2,3], [1,2,3]),
+  "n": diff([], []),
+  "o": diff([{a: 1}], [{a: 1}]),
+  "p": diff({a @(c: 2): 1}, {a @(c:2): 1}),
+  "q": diff(true, true),
+  "r": diff(1, 1),
+  "s": diff("other test", "other test"),
+  "t": diff({a:1 ,b: 2},{b: 2, a:1}, {unordered: true}),
+  "u": [{format: "ssn",data: "ABC"}] diff [{ format: "ssn",data: "ABC"}]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="cbd42e23-2fed-4274-a0de-dba8b45f3a65" message="#[payload]"/>
+	</flow>	
+</mule>

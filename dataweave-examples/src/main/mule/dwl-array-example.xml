@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow name="dwl-arrays-exampleFlow" doc:id="3039cc36-890c-4c6f-a7ea-2beb1da67532" >
+		<http:listener doc:name="Listener" doc:id="2408c917-4a4b-454a-9089-8e048ca60a41" config-ref="HTTP_Listener_config" path="/arrays"/>
+		<ee:transform doc:name="Transform Message" doc:id="484e5a19-473d-4c75-bd24-fcc343766494">
+			<ee:message>
+				<ee:set-payload><![CDATA[ %dw 2.0
+import * from dw::core::Arrays
+output application/json
+
+var arr0 = [] as Array<Number>
+---
+{
+	"countBy" : [1, 2, 3, 4] countBy (($ mod 2) == 0),
+	"divideBy" : [
+      { "divideBy2" : [1, 2, 3, 4, 5] divideBy 2 },
+      { "divideBy2" : [1, 2, 3, 4, 5, 6] divideBy 2 },
+      { "divideBy3" : [1, 2, 3, 4, 5] divideBy 3 }
+  ],
+  "everyResults" : [
+     "ok" : [
+        [1,1,1] every ($ == 1),
+        [1] every ($ == 1)
+     ],
+     "err" : [
+        [1,2,3] every ((log('should stop at 2 ==', $) mod 2) == 1),
+        [1,1,0] every ($ == 1),
+        [0,1,1,0] every (log('should stop at 0 ==', $) == 1),
+        [1,2,3] every ($ == 1),
+        arr0 every true,
+     ]
+   ],
+   "someResults" : [
+     "ok" : [
+       [1,2,3] some (($ mod 2) == 0),
+       [1,2,3] some (($ mod 2) == 1),
+       [1,2,3,4,5,6,7,8] some (log('should stop at 2 ==', $) == 2),
+       [1,2,3] some ($ == 1),
+       [1,1,1] some ($ == 1),
+       [1] some ($ == 1)
+     ],
+     "err" : [
+       [1,2,3] some ($ == 100),
+       [1] some ($ == 2)
+     ]
+   ],
+   "sumBy" : [
+    [ { a: 1 }, { a: 2 }, { a: 3 } ] sumBy $.a,
+    sumBy([ { a: 1 }, { a: 2 }, { a: 3 } ], (item) -> item.a)
+  ]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="586d4dbe-efbc-4c07-83e3-60cfbb453250" message="#[payload]"/>
+	</flow>			
+</mule>

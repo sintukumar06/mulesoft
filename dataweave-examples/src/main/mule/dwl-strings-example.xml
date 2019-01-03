@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow name="dwl-strings-exampleFlow" doc:id="37780dae-f69f-4a41-9248-830cbd2d3d23" >
+		<http:listener doc:name="Listener" doc:id="7dab585c-9704-43ca-914a-d249e2e08082" config-ref="HTTP_Listener_config" path="/string"/>
+		<ee:transform doc:name="Transform Message" doc:id="90725eaf-e005-4e41-9649-6ec5738bcf3b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+	"camelize" : camelize("customer_first_name"),
+	"capitalizea" : capitalize("customer"),
+	"capitalizeb" : capitalize("customer_first_name"),
+	"capitalizec" : capitalize("customer NAME"),
+	"capitalized" : capitalize("customerName"),
+	"charCode" : charCode("Mule"),
+	"charCodeAt" : charCodeAt("MuleSoft", 1),
+	"dasherizea" : dasherize("customer"),
+	"dasherizeb" : dasherize("customer_first_name"),
+	"dasherizec" : dasherize("customer NAME"),
+	"dasherized" : dasherize("customerName"),
+	"fromCharCode" : fromCharCode(117),
+	"ordinalizea" : ordinalize(1),
+	"ordinalizeb": ordinalize(2),
+	"ordinalizec": ordinalize(5),
+	"ordinalized": ordinalize(103),
+	"pluralize" : pluralize("box"),
+	"singularize" : singularize("boxes")
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="5eab5867-94c6-4f36-9725-044cd0a35a9b" message="#[payload]"/>
+	</flow>	
+</mule>

@@ -94,7 +94,10 @@ output application/json
 	avg2: avg([1, 2, 3]),
 	ceil1: ceil(1.5),
 	ceil2: ceil(2.1),
-	ceil3: ceil(3)
+	ceil3: ceil(3),
+	moda : 3 mod 2,
+	modb : 4 mod 2,
+	modc : 2.2 mod 2
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>

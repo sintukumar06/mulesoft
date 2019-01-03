@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow name="dwl-system-exampleFlow" doc:id="d64fc219-1f80-4e5b-b8db-d737b761e694" >
+		<http:listener doc:name="Listener" doc:id="c4022af8-7a72-493b-90e8-3c1818840e37" config-ref="HTTP_Listener_config" path="/system"/>
+		<ee:transform doc:name="Transform Message" doc:id="7854bad9-3f6a-416c-b3bb-2f9c850bbe19">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"envVars" : dw::System::envVars().SHELL,
+	"envVar" : [
+		"real" : dw::System::envVar("SHELL"),
+		"fake" : dw::System::envVar("FAKE_ENV_VAR")
+	]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="ca35358f-742a-43c6-9ab3-b9a722653391" message="#[payload]"/>
+	</flow>	
+</mule>
