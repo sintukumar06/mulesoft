@@ -20,11 +20,6 @@ tmp/**/*
 *.bak
 *.swp
 *~.nib
-local.properties
-.settings/
-.loadpath
-.project
-.classpath
 
 # External tool builders
 .externalToolBuilders/
@@ -46,3 +41,4 @@ target/
 .mule/**/*
 .DS_Store
 velocity.log
+/bin/
