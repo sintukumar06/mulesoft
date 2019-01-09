@@ -1,0 +1,16 @@
+#[%dw 2.0 output text/plain ---
+'<html>
+	<body>
+		
+		<h1>Salesforce data retrieval</h1>
+		<form action="/" method="POST">
+			Object: <select style="display:block;" name="object" >'
+				++ write(payload, 'application/xml', {"writeDeclaration" : "false"}) ++
+			'</select>
+			Field: <input style="display:block;" type="text" name="field" />
+			Search Key: <input style="display:block;" type="text" name="searchKey" />
+			Search Value: <input style="display:block;" type="text" name="searchValue" />
+			<input style="display:block;" type="submit" name="Submit" value="Submit" id="submit"/>
+		</form>
+	</body>
+</html>']

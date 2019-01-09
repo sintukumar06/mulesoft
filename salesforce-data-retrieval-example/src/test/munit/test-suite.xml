@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<munit:config name="test-suite.xml" />
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="3cfb1b75-5d2c-48b1-89c7-40bbfbe118c0" >
+		<http:request-connection host="localhost" port="${http.port}" />
+	</http:request-config>	
+	<munit:test name="test-suite-showFormFlowTest" description="Test" doc:id="bcb495f5-e778-4ed2-8d53-09ccc8961066" >
+		<munit:enable-flow-sources>
+	        <munit:enable-flow-source value="showFormFlow"/>
+    	</munit:enable-flow-sources>
+		<munit:execution >
+			<http:request method="GET" doc:name="Request" doc:id="b2b587f1-0bc6-4c0b-87a2-fc931e1891e2" config-ref="HTTP_Request_configuration" path="/" outputMimeType="application/xml">
+				<http:headers ><![CDATA[#[output applicaton/java
+---
+{
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+			</http:request>
+		</munit:execution>
+		<munit:validation >
+			<ee:transform doc:name="Transform Message" doc:id="3176a43e-2ccf-436b-9057-060849602bf6" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+sizeOf(payload.html.body.form.select.div)]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="6c70ca5a-e3b7-4e62-8f91-371d67055539" expression="#[payload]" is="#[MunitTools::equalTo(350)]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="test-suite-salesforceDataRetrievalFlowTest" description="Test" doc:id="639bfbba-77c6-40ad-9fbe-9ee4af0a5639" >
+		<munit:enable-flow-sources>
+	        <munit:enable-flow-source value="salesforceDataRetrievalFlow"/>
+    	</munit:enable-flow-sources>
+		<munit:execution >
+			<salesforce:create type="Contact" doc:name="Create test contact" doc:id="5e6e7336-43b9-4ca9-91c5-4fc1e4fdb2dd" config-ref="Salesforce_Sfdc_config" target="testContact">
+				<salesforce:records ><![CDATA[#[[{
+	"FirstName": "TestFirstName",
+	"LastName": "TestLastName",
+	"Email": "test@mail.org",
+	"Phone": "TestPhone"
+}]]]]></salesforce:records>
+			</salesforce:create>
+			<http:request method="POST" doc:name="Request" doc:id="b2b587f1-0bc6-4c0b-87a2-fc931e1891e2" config-ref="HTTP_Request_configuration" path="/">
+				<http:body ><![CDATA[{
+	"field": "Birthdate",
+	"object": "Contact",
+	"searchKey": "Name",
+	"searchValue": "TestFirstName TestLastName"
+}]]></http:body>
+				<http:headers ><![CDATA[#[output applicaton/java
+---
+{
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+			</http:request>
+		</munit:execution>
+		<munit:validation >
+			<ee:transform doc:name="Transform Message" doc:id="a116bc67-56be-41b4-8370-82e91b00cebb" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<munit-tools:assert-that doc:name="Assert the response status" doc:id="75bb7d0a-abd2-4526-8463-c826bb7507b0" message="Response status is not valid!" expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(200)]"/>
+			<munit-tools:assert-that doc:name="Assert the name" doc:id="d1d2b2cf-c54a-4ea3-96bc-859e92a46d60" expression="#[payload[0].Name]" is="#[MunitTools::equalTo('TestFirstName TestLastName')]" message="Name is not correct!"/>
+			<salesforce:delete doc:name="Clean up" doc:id="bb9451fb-d843-412b-b9ce-3103633ce695" config-ref="Salesforce_Sfdc_config">
+				<salesforce:delete-ids ><![CDATA[#[vars.testContact.Id]]]></salesforce:delete-ids>
+			</salesforce:delete>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="unknown-field-salesforceDataRetrievalFlowTest" description="Test" doc:id="639bfbba-77c6-40ad-9fbe-9ee4af0a5639" >
+		<munit:enable-flow-sources>
+	        <munit:enable-flow-source value="salesforceDataRetrievalFlow"/>
+    	</munit:enable-flow-sources>
+		<munit:execution >
+			<salesforce:create type="Contact" doc:name="Create test contact" doc:id="5e6e7336-43b9-4ca9-91c5-4fc1e4fdb2dd" config-ref="Salesforce_Sfdc_config" target="testContact">
+				<salesforce:records ><![CDATA[#[[{
+	"FirstName": "TestFirstName",
+	"LastName": "TestLastName",
+	"Email": "test@mail.org",
+	"Phone": "TestPhone"
+}]]]]></salesforce:records>
+			</salesforce:create>
+			<try doc:name="Try" doc:id="29c21e82-c1e1-4072-9e23-772e4ff8d408" >
+				<http:request method="POST" doc:name="Request" doc:id="b2b587f1-0bc6-4c0b-87a2-fc931e1891e2" config-ref="HTTP_Request_configuration" path="/">
+				<http:body><![CDATA[{
+	"field": "unknownField",
+	"object": "Contact",
+	"searchKey": "Name",
+	"searchValue": "TestFirstName TestLastName"
+}]]></http:body>
+				<http:headers><![CDATA[#[output applicaton/java
+---
+{
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+			</http:request>
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="c9d8efa0-d293-4add-81a9-0b1ec83d937b" >
+						<munit-tools:assert-that doc:name="Assert the error message" doc:id="d1d2b2cf-c54a-4ea3-96bc-859e92a46d60" expression="#[error.description]" is="#[MunitTools::equalTo(&quot;HTTP POST on resource 'http://localhost:8081/' failed: bad request (400).&quot;)]" message="Error message is not correct!" />
+						<salesforce:delete doc:name="Clean up" doc:id="bb9451fb-d843-412b-b9ce-3103633ce695" config-ref="Salesforce_Sfdc_config">
+				<salesforce:delete-ids><![CDATA[#[vars.testContact.Id]]]></salesforce:delete-ids>
+			</salesforce:delete>
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</munit:execution>
+	</munit:test>
+</mule>

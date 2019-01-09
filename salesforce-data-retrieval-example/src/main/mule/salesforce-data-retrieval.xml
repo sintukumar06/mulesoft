@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="29fe092a-d242-4e0d-ad03-dc4c1747aa11" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Sfdc_config" doc:name="Salesforce Sfdc config" doc:id="9012e257-dbae-4733-93ab-9b004236b4ec" >
+		<salesforce:basic-connection username="${sfdc.user}" password="${sfdc.password}" securityToken="${sfdc.securityToken}" proxyHost="${sfdc.proxy}" proxyPort="${sfdc.proxy.port}"/>
+	</salesforce:sfdc-config>
+	<configuration-properties file="mule-artifact.properties" doc:name="Configuration properties" doc:id="253100f9-08ba-4cc3-a901-929404f8ae1d" />
+	<flow name="showFormFlow" doc:id="bdaf677e-c418-43a8-b58e-716125afb3ba" >
+		<http:listener config-ref="HTTP_Listener_config" path="/" doc:name="Listener" doc:id="e6574712-b46d-4b54-9f84-f41b745744ba" allowedMethods="GET"/>
+		<salesforce:describe-global config-ref="Salesforce_Sfdc_config" doc:name="Describe global" doc:id="fc7aae0e-66b3-4ff8-b1f1-b80ebe3b40c3" />
+		<ee:transform doc:name="Tranform to HTML set of option values" doc:id="adcd66f7-de7c-4a6f-88a7-599ac43710b6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+div: { 
+	(payload.sobjects map {
+		option @(value: $.name): $.label
+	})
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<parse-template location="retrieval/page_template.dw" doc:name="Parse Template" doc:id="2969b84b-377d-4260-8833-468c7d91fe7e" />
+		<set-payload value="#[payload]" doc:name="Set MIME type to text/html" doc:id="2c0c1131-f6e0-4297-bb43-276264b72b46" mimeType="text/html"/>
+	</flow>
+	<flow name="salesforceDataRetrievalFlow" doc:id="e8baa162-e0c3-441d-9167-a908c1700af9" >
+		<http:listener config-ref="HTTP_Listener_config" path="/" doc:name="Listener" doc:id="d7129ae1-67bc-4b75-b0b9-c04726d2ecab" allowedMethods="POST">
+			<http:error-response statusCode="#[vars.httpStatus default 500]">
+				<http:body>#[payload]</http:body>
+			</http:error-response>
+		</http:listener>
+		<salesforce:query-all config-ref="Salesforce_Sfdc_config" doc:name="Query all" doc:id="15d35ca5-be04-47e5-a85e-2592046d0311" >
+			<salesforce:salesforce-query >#['SELECT id, name' ++ (if(isEmpty(payload.field)) &quot;&quot; else &quot;, &quot; ++ payload.field) ++ ' from ' ++ payload.object ++' where ' ++ payload.searchKey ++ ' like \'%' ++ payload.searchValue ++'%\'']</salesforce:salesforce-query>
+		</salesforce:query-all>
+		<ee:transform doc:name="Transform response to JSON" doc:id="6df0fa1d-e3a7-4bd6-9d8a-029bb3badb88" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log results" doc:id="3e17fbe1-6a08-4a01-b413-0b2de3f2d6ab" message="#['Result: ' ++ write(payload, 'application/json',  {&quot;indent&quot; : &quot;false&quot;})]"/>
+		<error-handler>
+			<on-error-propagate type="SALESFORCE:INVALID_REQUEST_DATA, SALESFORCE:INVALID_STRUCTURE_FOR_INPUT_DATA, SALESFORCE:UNKNOWN" enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2c2e3c76-efbc-48e0-b590-7134872a9e1a" >
+				<set-payload value="Invalid Salesforce query." doc:name="Set bad request error message" mimeType="text/plain"/>
+				<set-variable variableName="httpStatus" value="400" doc:name="Set response status" doc:id="e1b42004-08e6-422a-9301-9a639fb3867b" />
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="51d4bd32-cbff-4f6e-97ef-192c686a5ddf" type="ANY">
+				<set-payload value="#[%dw 2.0
+output application/json
+---
+error]" doc:name="Set general error message" doc:id="d1d97fc1-7201-4399-ad2b-0f0d37c5df26" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
