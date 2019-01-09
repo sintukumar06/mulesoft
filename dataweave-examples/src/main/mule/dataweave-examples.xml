@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		<file:connection workingDir="${file.working.dir}" />
 	</file:config>
 	<salesforce:sfdc-config name="Salesforce_Sfdc_config" doc:name="Salesforce Sfdc config" doc:id="17bb096c-aab5-4464-821a-126b6ea8d7de" >
-		<salesforce:basic-connection username="${sfdc.user}" password="${sfdc.password}" securityToken="${sfdc.securityToken}" />
+		<salesforce:basic-connection username="${sfdc.user}" password="${sfdc.password}" securityToken="${sfdc.securityToken}" proxyHost="proxy.ops.tiaa-cref.org" proxyPort="8080" url="https://login.salesforce.com/services/Soap/u/39.0"/>
 	</salesforce:sfdc-config>
 	<configuration-properties file="mule-artifact.properties" doc:name="Configuration properties" doc:id="ed23f760-3b86-4104-84a9-1d02c6f1a12c" />
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8c9d5b28-7e48-4fd0-93cc-3b7cf95e8496" basePath="/dwl" >
@@ -20,11 +20,21 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	</http:listener-config>
 	<flow name="CreateNewSalesforceAccountFlow" doc:description="From the content of a CSV file, creates new accounts in Salesforce." doc:id="b0dbbd6e-2ccf-494d-ac45-8977aad2906c" >
 		<http:listener doc:name="Listener" doc:id="a3c402f5-fe86-45ce-8edd-d15b630cf2db" config-ref="HTTP_Listener_config" path="/callSubFlow"/>
+<!-- 		<scripting:execute engine="groovy" doc:name="Execute" doc:id="e9f7baa4-cd17-4ab9-93fd-31ffda3b5417" >
+			<scripting:code >System.setProperty(&quot;http.proxyHost&quot;, &quot;proxy.ops.tiaa-cref.org&quot;);
+System.setProperty(&quot;http.proxyPort&quot;, &quot;8080&quot;);
+System.setProperty(&quot;https.proxyHost&quot;, &quot;proxy.ops.tiaa-cref.org&quot;);
+System.setProperty(&quot;https.proxyPort&quot;, &quot;8080&quot;);
+System.setProperty(&quot;socksProxyHost&quot;, &quot;proxy.ops.tiaa-cref.org&quot;);
+System.setProperty(&quot;socksProxyPort&quot;, &quot;8080&quot;);
+
+return payload;</scripting:code>
+		</scripting:execute> -->
 		<file:read config-ref="File_Config" path="companies.csv" doc:name="Read CSV file" doc:id="fb080956-5259-4622-b2d0-eec523e645a1" outputMimeType="application/csv" />
 		<ee:transform doc:name="Map to SFDC structure" doc:id="85ef3c47-d236-406b-9ff4-e8d65fa24af4" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
+output application/java
 ---
 payload map
 {
@@ -32,14 +42,29 @@ payload map
 	BillingStreet: $.company_address,
 	BillingCity: $.company_city,
 	BillingState: upper($.company_state),
-	BillingPostalCode: $.company_zip,
-	Region__c: lookup("LookUpSalesRegionFlow", $.company_state).region
+	BillingPostalCode: $.company_zip
+//	Region__c: lookup("LookUpSalesRegionFlow", $.company_state).region
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="1e7d6504-0346-42cd-885b-0e14807a6b09" message='#["Payload -------&gt; " ++ (payload as String)]'/>
-<!--  		<salesforce:create config-ref="Salesforce_Sfdc_config" doc:name="Create Account" doc:id="04546b77-4625-45cc-955b-df5740ff331d" type="Account"/>
-	 -->
+		<salesforce:create config-ref="Salesforce_Sfdc_config" doc:name="Create Account" doc:id="04546b77-4625-45cc-955b-df5740ff331d" type="Account"/>
+		<ee:transform doc:name="Transform Message" doc:id="978fcb37-648c-49cb-8e1f-d63dbc0349ac" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c79c19a3-4f73-41cb-a451-26bef5d32d35" >
+				<logger level="INFO" doc:name="Logger" doc:id="2dfd0fbc-180d-4297-8241-325c37e0faf6" message="#[%dw 2.0
+output application/json
+---
+error]"/>
+			</on-error-propagate>
+		</error-handler>
+	
 </flow>
 	<flow name="LookUpSalesRegionFlow" doc:description="The script uses data in the state field to add a region to the payload according to location." doc:id="8f69c476-d8a0-4169-82cc-83000b7c442f" >
 		<scripting:execute engine="groovy" doc:name="Get Region by State" doc:id="6eea6fc0-65a3-45ed-835c-f66f626a9258" >

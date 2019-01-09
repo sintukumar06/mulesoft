@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+		<sub-flow name="function1" doc:id="682564e6-5b12-48fc-ac45-4a4d8be72cc7" >
+		<ee:transform doc:name="Transform Message" doc:id="1dda27cf-1644-4649-b73e-2a92c0f0d75c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/xml
+fun applyToKeys(element, func) =
+    if (element is Object)
+        element mapObject (value, key) -> {
+	(func(key)) : applyToKeys( value, func)
+}
+    else element
+---
+applyToKeys(payload, (key) -> lower(key))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<flow name="dwl-function-exampleFlow" doc:id="dbc1dd08-1b96-48b2-9be6-9707fb1aadd8" >
+		<http:listener doc:name="Listener" doc:id="d3a4182b-4c20-41cf-98c2-dce1872f2ed6" config-ref="HTTP_Listener_config" path="/function"/>
+		<ee:transform doc:name="Transform Message" doc:id="73422375-cbf6-4f06-98fb-5ed576b00e95">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var tax = 0.085
+var discount = 0.05
+fun getSubtotal (items) = items reduce ((item, accumulator = 0) ->
+        accumulator + (item.unit_price * item.quantity * (1 - discount)))
+---
+invoice: {
+    header: payload.invoice.header,
+    items: { (payload.invoice.items map {
+        item : {
+            description: $.description,
+            quantity: $.quantity,
+            unit_price: $.unit_price,
+            discount: (discount * 100) as Number ++ "%",
+            subtotal: $.unit_price * $.quantity * (1 - discount)
+        }
+    }) },
+    totals:
+    {
+        subtotal: getSubtotal(payload.invoice.items ),
+        tax: (tax * 100) as Number ++ "%",
+        total: getSubtotal(payload.invoice.items ) * (1 + tax)
+    }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="a677cf1c-c95c-4ce0-a3aa-16fca72df7d4" name="function1" />
+		<logger level="INFO" doc:name="Logger" doc:id="73862941-c7e5-4acb-9760-905e316468c3" message="#[payload]"/>
+	</flow>		
+</mule>
